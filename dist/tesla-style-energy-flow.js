@@ -3689,7 +3689,10 @@
         gridToLoadVisual = Math.min(gridImport, loadPos);
       }
 
-      this._activatePath('line-solar-load', 'flow-solar', solarToLoad, solarMin);
+      // Source lines feed the shared junction, which also supplies the heat pump
+      // and EV branches: include those shares, or a source that only powers the
+      // heat pump / EV would leave its line dark (issue #50).
+      this._activatePath('line-solar-load', 'flow-solar', solarToLoad + solarToFlex, solarMin);
       // line-grid-load: forward = grid imports to home junction; reverse = battery exports via junction to grid.
       // Only activate one direction at a time to avoid the two calls overwriting each other's flow-reverse flag.
       if (batteryToGrid >= Math.max(1, Math.min(gridMin, batteryMin)) && gridImportVisual < gridMin) {
@@ -3701,7 +3704,7 @@
         this._activatePath('line-grid-load', 'flow-broken', gridImportVisual, gridMin);
       }
       const battLoadThreshold = Math.max(1, Math.min(gridMin, batteryMin));
-      this._activatePath('line-battery-load', 'flow-green', Math.max(battToLoad, batteryToGrid), battLoadThreshold);
+      this._activatePath('line-battery-load', 'flow-green', Math.max(battToLoad + battToFlex, batteryToGrid), battLoadThreshold);
 
       const homeTotal = solarToLoad + battToLoad + gridToLoadVisual;
       const homeCls = this._dominantFlowClass('home', solarToLoad, battToLoad, gridToLoadVisual, 'flow-solar');

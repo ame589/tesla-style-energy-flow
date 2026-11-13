@@ -112,3 +112,32 @@ assert.deepEqual(
   '90 % solar + 10 % grid and no battery stays yellow, not green'
 );
 assert.equal(evLineClasses([[1600, 3000]])[0], 'flow-broken', 'grid-dominant mix with no battery is red');
+
+// Issue #50: a source that only feeds the heat pump (or EV) must still light its line to the junction.
+function sourceLines({ solarW = 0, gridW = 0, batteryW = 0, homeW = 0, hpW = 0, evW = 0 }) {
+  const card = new Card();
+  card.setConfig({
+    language: 'en',
+    entities: {
+      solar_power: 'sensor.solar', grid_power: 'sensor.grid', battery_power: 'sensor.battery',
+      load_power: 'sensor.home', heat_pump_power: 'sensor.hp', ev_power: 'sensor.ev'
+    }
+  });
+  const lit = [];
+  card._setText = () => {};
+  card._activatePath = (id, c, watts, threshold) => { if (watts >= threshold) lit.push(id); };
+  const state = (v) => ({ state: String(v), attributes: { unit_of_measurement: 'W' } });
+  card.hass = { language: 'en', states: {
+    'sensor.solar': state(solarW), 'sensor.grid': state(gridW), 'sensor.battery': state(batteryW),
+    'sensor.home': state(homeW), 'sensor.hp': state(hpW), 'sensor.ev': state(evW)
+  } };
+  return lit;
+}
+
+assert.ok(sourceLines({ batteryW: -1500, hpW: 1500 }).includes('line-battery-load'),
+  'battery discharging only into the heat pump lights the battery line');
+assert.ok(sourceLines({ batteryW: -1500, hpW: 1500 }).includes('line-heat-pump'));
+assert.ok(sourceLines({ solarW: 1500, hpW: 1500 }).includes('line-solar-load'),
+  'solar feeding only the heat pump lights the solar line');
+assert.ok(sourceLines({ batteryW: -3000, evW: 3000 }).includes('line-battery-load'),
+  'battery discharging only into the EV lights the battery line');
