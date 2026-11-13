@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The battery and solar lines now light up when that source only powers the heat pump or the EV, not just the home (#50)
+
 ## 0.3.32 - 2026-10-24
 
 - The EV line stays yellow when the car charges from solar alone; green now requires the battery to contribute. Solar with a small grid contribution and no battery stays yellow instead of turning green (#45)
